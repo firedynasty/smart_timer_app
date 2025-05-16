@@ -385,6 +385,17 @@ const AccessiblePDFViewer = () => {
           toggleAutoScroll();
           e.preventDefault();
           break;
+        case '-':
+          // Zoom out
+          changeZoom(Math.max(0.5, scale - 0.2));
+          e.preventDefault();
+          break;
+        case '=':
+        case '+':
+          // Zoom in
+          changeZoom(scale + 0.2);
+          e.preventDefault();
+          break;
         default:
           break;
       }
@@ -431,7 +442,7 @@ const AccessiblePDFViewer = () => {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [pdfFile, changePage, changePagePreserveScroll, resetScrollTimer, toggleAutoScroll]);
+  }, [pdfFile, changePage, changePagePreserveScroll, resetScrollTimer, toggleAutoScroll, scale, changeZoom]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '1rem', width: '100%' }}>
@@ -549,7 +560,7 @@ const AccessiblePDFViewer = () => {
                   cursor: 'pointer'
                 }}
               >
-                -
+                - (-)
               </button>
               <span style={{ color: '#4b5563' }}>{Math.round(scale * 100)}%</span>
               <button 
@@ -563,7 +574,7 @@ const AccessiblePDFViewer = () => {
                   cursor: 'pointer'
                 }}
               >
-                +
+                + (=)
               </button>
             </div>
             
