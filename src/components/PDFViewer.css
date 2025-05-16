@@ -59,6 +59,11 @@
   cursor: pointer;
 }
 
+.faq-button {
+  background-color: #4a90e2 !important;
+  font-weight: bold;
+}
+
 .pdf-container {
   flex: 1;
   overflow-y: auto;

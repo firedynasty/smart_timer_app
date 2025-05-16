@@ -1,5 +1,6 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import PDFAutoScroll from './PDFAutoScroll';
+import FAQModal from './FAQModal';
 import './PDFViewer.css';
 
 // Import pdfjs library directly - explicitly set version for stability
@@ -17,6 +18,7 @@ const PDFViewer = ({ pdfUrl }) => {
   const [pdfLoaded, setPdfLoaded] = useState(false);
   const [isEditingPage, setIsEditingPage] = useState(false);
   const [editedPageNumber, setEditedPageNumber] = useState('');
+  const [isFAQOpen, setIsFAQOpen] = useState(false);
   
   const containerRef = useRef(null);
   const pdfDocRef = useRef(null);
@@ -31,7 +33,7 @@ const PDFViewer = ({ pdfUrl }) => {
   });
   
   // Utility function to safely render a page to the canvas
-  const safeRenderPage = async (pageNumber, scale, adjustedScale = 2.0) => {
+  const safeRenderPage = useCallback(async (pageNumber, scale, adjustedScale = 2.0) => {
     // Add this render operation to the queue if another one is already in progress
     if (renderingRef.current) {
       return new Promise((resolve, reject) => {
@@ -117,7 +119,7 @@ const PDFViewer = ({ pdfUrl }) => {
           .catch(nextRender.reject);
       }
     }
-  };
+  }, []);
   
   // Load the PDF document
   useEffect(() => {
@@ -208,7 +210,7 @@ const PDFViewer = ({ pdfUrl }) => {
     return () => {
       isMounted = false;
     };
-  }, [pageNumber, pdfLoaded]);
+  }, [pageNumber, pdfLoaded, safeRenderPage, scale]);
   
   // Update zoom when scale changes
   useEffect(() => {
@@ -225,10 +227,10 @@ const PDFViewer = ({ pdfUrl }) => {
     };
     
     renderWithNewScale();
-  }, [scale]);
+  }, [scale, pageNumber, pdfLoaded, safeRenderPage]);
   
   // Handle page navigation
-  const changePage = (offset, resetScroll = true) => {
+  const changePage = useCallback((offset, resetScroll = true) => {
     if (!numPages) return;
     
     // Create and dispatch an event to notify auto-scroll component to reset timer
@@ -244,20 +246,20 @@ const PDFViewer = ({ pdfUrl }) => {
       const newPageNumber = prevPageNumber + offset;
       return Math.min(Math.max(1, newPageNumber), numPages);
     });
-  };
+  }, [numPages]);
   
   // Handle zoom controls
   const zoomIn = () => setScale(prevScale => Math.min(prevScale + 0.25, 4.0));
   const zoomOut = () => setScale(prevScale => Math.max(prevScale - 0.25, 0.5));
   
   // This is simply a reset function now (not a full reload to homepage)
-  const resetPDFView = () => {
+  const resetPDFView = useCallback(() => {
     setScale(1.0);
     setPageNumber(1);
     if (containerRef.current) {
       containerRef.current.scrollTop = 0;
     }
-  };
+  }, []);
   
   // Listen for page change events from auto-scroll and handle key navigation
   useEffect(() => {
@@ -336,7 +338,7 @@ const PDFViewer = ({ pdfUrl }) => {
       document.removeEventListener('pageChangeNoScroll', handlePageChangeNoScroll);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [numPages]);
+  }, [numPages, changePage, pageNumber, resetPDFView]);
   
   return (
     <div className="pdf-viewer">
@@ -400,6 +402,7 @@ const PDFViewer = ({ pdfUrl }) => {
           <span>{Math.round(scale * 100)}%</span>
           <button onClick={zoomIn} disabled={isLoading}>+</button>
           <button onClick={resetPDFView} disabled={isLoading}>Reload PDF (r)</button>
+          <button onClick={() => setIsFAQOpen(true)} className="faq-button" disabled={isLoading}>FAQ</button>
         </div>
         
         <PDFAutoScroll pdfViewerRef={pdfViewerRef} />
@@ -412,6 +415,9 @@ const PDFViewer = ({ pdfUrl }) => {
           <canvas ref={canvasRef} className="pdf-page"></canvas>
         )}
       </div>
+      
+      {/* FAQ Modal */}
+      <FAQModal isOpen={isFAQOpen} onClose={() => setIsFAQOpen(false)} />
     </div>
   );
 };

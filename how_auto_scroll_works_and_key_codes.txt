@@ -1,0 +1,1 @@
+see ./public/how_auto_scroll_works_and_key_codes.txt because changes in there will change the FAQ modal.

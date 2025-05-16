@@ -46,10 +46,14 @@ IMPLEMENTATION DETAILS:
 TIPS:
 ----
 - For large pages, use 'x' and 'c' keys to navigate up and down before moving to the next page
+- Better yet, can use 'o' and 'p' as home and page down when zoomed in to 150% larger pages.
+- 'm' will go to next page
 - Set a comfortable interval based on your reading speed (slower for detailed content)
 - You can temporarily pause auto-scrolling by pressing '/' and resume again with the same key
 
 
+
+BUILDING: 
     pdfContainer.scrollTo({                                     │ │
 │ │ 287            top: 0,                                                   │ │
 │ │ 288            behavior: 'smooth'                                        │ │
