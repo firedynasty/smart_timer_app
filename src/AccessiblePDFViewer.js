@@ -15,6 +15,10 @@ const AccessiblePDFViewer = () => {
   const [pdfFile, setPdfFile] = useState(null);
   const [error, setError] = useState(null);
   
+  // Page input state
+  const [pageInputValue, setPageInputValue] = useState("1");
+  const [isEditingPage, setIsEditingPage] = useState(false);
+  
   // Auto-scroll state
   const [autoScrollActive, setAutoScrollActive] = useState(false);
   const [scrollIntervalSeconds, setScrollIntervalSeconds] = useState(10);
@@ -70,6 +74,7 @@ const AccessiblePDFViewer = () => {
   const onDocumentLoadSuccess = ({ numPages }) => {
     setNumPages(numPages);
     setPageNumber(1);
+    setPageInputValue("1");
     setError(null);
   };
 
@@ -94,12 +99,32 @@ const AccessiblePDFViewer = () => {
     const newPage = pageNumber + offset;
     if (newPage >= 1 && newPage <= numPages) {
       setPageNumber(newPage);
+      setPageInputValue(newPage.toString());
       // Reset scroll position when changing pages
       window.scrollTo({
         top: 0,
         behavior: 'smooth'
       });
     }
+  }, [pageNumber, numPages]);
+  
+  // Go to a specific page number directly
+  const goToSpecificPage = useCallback((targetPage) => {
+    const numericPage = parseInt(targetPage, 10);
+    if (!isNaN(numericPage) && numericPage >= 1 && numericPage <= numPages) {
+      setPageNumber(numericPage);
+      setPageInputValue(numericPage.toString());
+      // Reset scroll position
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    } else {
+      // Reset input to current page if invalid
+      setPageInputValue(pageNumber.toString());
+    }
+    // Exit editing mode
+    setIsEditingPage(false);
   }, [pageNumber, numPages]);
 
   // Change page while preserving scroll position
@@ -109,7 +134,9 @@ const AccessiblePDFViewer = () => {
       const currentScrollPosition = window.scrollY;
       
       // Update page number
-      setPageNumber(prevPageNumber => prevPageNumber + offset);
+      const newPage = pageNumber + offset;
+      setPageNumber(newPage);
+      setPageInputValue(newPage.toString());
       
       // Restore scroll position after a short delay to allow page rendering
       setTimeout(() => {
@@ -457,8 +484,53 @@ const AccessiblePDFViewer = () => {
             >
               Next (m/,)
             </button>
-            <div style={{ color: '#4b5563', margin: '0 1rem' }}>
-              {pageNumber} of {numPages || '?'}
+            <div style={{ color: '#4b5563', margin: '0 1rem', display: 'flex', alignItems: 'center' }}>
+              {isEditingPage ? (
+                <input
+                  type="text"
+                  value={pageInputValue}
+                  onChange={(e) => {
+                    // Allow only numbers
+                    const value = e.target.value.replace(/[^0-9]/g, '');
+                    setPageInputValue(value);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      goToSpecificPage(pageInputValue);
+                    } else if (e.key === 'Escape') {
+                      setIsEditingPage(false);
+                      setPageInputValue(pageNumber.toString());
+                    }
+                  }}
+                  onBlur={() => {
+                    goToSpecificPage(pageInputValue);
+                  }}
+                  autoFocus
+                  style={{
+                    width: '3rem',
+                    padding: '0.25rem',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '0.25rem',
+                    textAlign: 'center'
+                  }}
+                  aria-label="Go to page number"
+                />
+              ) : (
+                <span 
+                  onClick={() => setIsEditingPage(true)}
+                  style={{ 
+                    cursor: 'pointer',
+                    padding: '0.25rem 0.5rem',
+                    borderRadius: '0.25rem',
+                    backgroundColor: '#e5e7eb',
+                    minWidth: '1.5rem',
+                    textAlign: 'center'
+                  }}
+                  title="Click to edit page number"
+                >
+                  {pageNumber}
+                </span>
+              )} of {numPages || '?'}
             </div>
           </div>
 
@@ -607,21 +679,20 @@ const AccessiblePDFViewer = () => {
         </div>
       )}
 
-      <div style={{ 
-        width: '100%', 
-        maxWidth: '64rem', 
-        backgroundColor: '#f3f4f6', 
-        borderRadius: '0.5rem', 
-        padding: '1.5rem', 
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-      }}>
+      {!pdfFile && (
         <div style={{ 
           display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          marginBottom: '1rem'
+          flexDirection: 'column',
+          alignItems: 'center',
+          width: '100%', 
+          maxWidth: '64rem'
         }}>
-          {!pdfFile && (
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            marginBottom: '1rem'
+          }}>
             <button 
               onClick={() => setIsFAQModalOpen(true)}
               style={{ 
@@ -636,11 +707,9 @@ const AccessiblePDFViewer = () => {
             >
               FAQ
             </button>
-          )}
-        </div>
-        
-        {!pdfFile && (
-          <div style={{ marginBottom: '1.5rem' }}>
+          </div>
+          
+          <div style={{ marginBottom: '1.5rem', width: '100%' }}>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: '#4b5563' }}>
               Choose PDF File:
               <input 
@@ -657,49 +726,41 @@ const AccessiblePDFViewer = () => {
               />
             </label>
           </div>
-        )}
-        
-        {error && (
-          <div style={{ 
-            marginBottom: '1rem', 
-            padding: '1rem', 
-            color: '#b91c1c', 
-            backgroundColor: '#fee2e2', 
-            borderRadius: '0.375rem' 
-          }}>
-            {error}
-          </div>
-        )}
-        
-        {pdfFile && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <div style={{ 
-              marginBottom: '1rem', 
-              border: '1px solid #d1d5db', 
-              borderRadius: '0.5rem', 
-              overflow: 'auto', 
-              backgroundColor: 'white' 
-            }}>
-              <Document
-                file={pdfFile}
-                onLoadSuccess={onDocumentLoadSuccess}
-                onLoadError={onDocumentLoadError}
-                style={{ margin: '0 auto' }}
-                externalLinkTarget="_blank"
-                externalLinkRel="noopener noreferrer"
-              >
-                <Page 
-                  pageNumber={pageNumber} 
-                  scale={scale}
-                  renderTextLayer={true}
-                  renderAnnotationLayer={true}
-                  externalLinkTarget="_blank"
-                />
-              </Document>
-            </div>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
+      
+      {error && (
+        <div style={{ 
+          marginBottom: '1rem', 
+          padding: '1rem', 
+          color: '#b91c1c', 
+          backgroundColor: '#fee2e2', 
+          borderRadius: '0.375rem',
+          width: '100%',
+          maxWidth: '64rem'
+        }}>
+          {error}
+        </div>
+      )}
+      
+      {pdfFile && (
+        <Document
+          file={pdfFile}
+          onLoadSuccess={onDocumentLoadSuccess}
+          onLoadError={onDocumentLoadError}
+          style={{ margin: '0 auto' }}
+          externalLinkTarget="_blank"
+          externalLinkRel="noopener noreferrer"
+        >
+          <Page 
+            pageNumber={pageNumber} 
+            scale={scale}
+            renderTextLayer={true}
+            renderAnnotationLayer={true}
+            externalLinkTarget="_blank"
+          />
+        </Document>
+      )}
       
       {/* FAQ Modal */}
       <FAQModal 
