@@ -1,30 +1,22 @@
 {
-  "name": "from-claude",
+  "name": "accessible-pdf-viewer",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "compression": "^1.7.4",
     "cra-template": "1.2.0",
-    "express": "^4.18.2",
-    "pdfjs-dist": "3.4.120",
+    "pdfjs-dist": "^4.8.69",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-pdf": "^7.7.1",
     "react-scripts": "5.0.1",
     "recharts": "^2.15.0",
     "web-vitals": "^4.2.4"
   },
-  "devDependencies": {
-    "@babel/plugin-proposal-private-property-in-object": "^7.21.11"
-  },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build && npm run copy-json",
+    "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "vercel-build": "CI=false npm run build",
-    "vercel-start": "node index.js",
-    "copy-json": "node -e \"const fs=require('fs');const path=require('path');const publicDir=path.join(process.cwd(),'public');const buildDir=path.join(process.cwd(),'build');fs.readdirSync(publicDir).filter(f=>f.endsWith('.json')).forEach(file=>{fs.copyFileSync(path.join(publicDir,file),path.join(buildDir,file));console.log('Copied '+file);});\"",
-    "verify-build": "node scripts/verify-build.js"
+    "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": [

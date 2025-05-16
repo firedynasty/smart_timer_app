@@ -11,3 +11,28 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+.App {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* PDF Viewer specific styles */
+.react-pdf__Document {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.react-pdf__Page {
+  margin: 1em 0;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.15);
+  position: relative;
+}
+
+/* Make sure the text layer is properly positioned */
+.react-pdf__Page__textContent {
+  user-select: text;
+  -webkit-user-select: text;
+}

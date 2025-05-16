@@ -7,10 +7,6 @@
       "config": {
         "distDir": "build"
       }
-    },
-    {
-      "src": "index.js",
-      "use": "@vercel/node"
     }
   ],
   "routes": [
@@ -20,16 +16,7 @@
       "dest": "/static/$1"
     },
     {
-      "src": "/api/(.*)",
-      "dest": "/index.js"
-    },
-    {
-      "src": "/(.*\\.(json))",
-      "headers": { "content-type": "application/json" },
-      "dest": "/$1"
-    },
-    {
-      "src": "/(.*\\.(js|css|svg|png|jpg|jpeg|gif|ico|html))",
+      "src": "/(.*\\.(js|css|svg|png|jpg|jpeg|gif|ico|pdf))",
       "dest": "/$1"
     },
     {
