@@ -21,12 +21,103 @@ const PDFViewer = ({ pdfUrl }) => {
   const containerRef = useRef(null);
   const pdfDocRef = useRef(null);
   const canvasRef = useRef(null);
+  const renderingRef = useRef(false); // Track if a render operation is in progress
+  const renderQueueRef = useRef([]); // Queue for pending render operations
   
   const pdfViewerRef = useRef({
     currentPageNumber: 1,
     pagesCount: 0,
     container: null
   });
+  
+  // Utility function to safely render a page to the canvas
+  const safeRenderPage = async (pageNumber, scale, adjustedScale = 2.0) => {
+    // Add this render operation to the queue if another one is already in progress
+    if (renderingRef.current) {
+      return new Promise((resolve, reject) => {
+        renderQueueRef.current.push({
+          pageNumber, 
+          scale, 
+          adjustedScale,
+          resolve,
+          reject
+        });
+      });
+    }
+    
+    // Mark that we're now rendering
+    renderingRef.current = true;
+    
+    try {
+      if (!pdfDocRef.current || !canvasRef.current) {
+        throw new Error("PDF document or canvas not available");
+      }
+      
+      // Get the page
+      const page = await pdfDocRef.current.getPage(pageNumber);
+      
+      // Get the viewport with current scale
+      const viewport = page.getViewport({ scale: 1.0 });
+      
+      // Get the canvas and context
+      const canvas = canvasRef.current;
+      const context = canvas.getContext('2d', { alpha: false });
+      
+      // Clear the canvas
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Set canvas dimensions for high quality
+      canvas.width = viewport.width * adjustedScale;
+      canvas.height = viewport.height * adjustedScale;
+      
+      // Store original dimensions for zoom calculations
+      canvas.setAttribute('data-original-width', viewport.width);
+      canvas.setAttribute('data-original-height', viewport.height);
+      
+      // Apply zoom to display size
+      canvas.style.width = (viewport.width * scale) + 'px';
+      canvas.style.height = (viewport.height * scale) + 'px';
+      
+      // Set scale for context
+      context.scale(adjustedScale, adjustedScale);
+      
+      // Render the page
+      await page.render({
+        canvasContext: context,
+        viewport: viewport
+      }).promise;
+      
+      // Clean up page resources
+      page.cleanup && page.cleanup();
+      
+      // Update auto-scroll refs
+      pdfViewerRef.current.currentPageNumber = pageNumber;
+      if (containerRef.current) {
+        pdfViewerRef.current.container = containerRef.current;
+      }
+    } catch (error) {
+      console.error('Error rendering page:', error);
+      setError(`Error rendering page ${pageNumber}: ${error.message}`);
+      throw error;
+    } finally {
+      // Mark that we're done rendering
+      renderingRef.current = false;
+      
+      // Check if there are any queued render operations
+      if (renderQueueRef.current.length > 0) {
+        // Get the next render operation from the queue (most recent one)
+        const nextRender = renderQueueRef.current.pop();
+        
+        // Clear the rest of the queue since we'll only process the most recent request
+        renderQueueRef.current = [];
+        
+        // Process the next render operation
+        safeRenderPage(nextRender.pageNumber, nextRender.scale, nextRender.adjustedScale)
+          .then(nextRender.resolve)
+          .catch(nextRender.reject);
+      }
+    }
+  };
   
   // Load the PDF document
   useEffect(() => {
@@ -101,54 +192,10 @@ const PDFViewer = ({ pdfUrl }) => {
     
     const renderPage = async () => {
       try {
-        // Get the page
-        const page = await pdfDocRef.current.getPage(pageNumber);
-        
-        if (!isMounted || !canvasRef.current) {
-          page.cleanup && page.cleanup();
-          return;
-        }
-        
-        // Get the viewport at scale 1.0
-        const viewport = page.getViewport({ scale: 1.0 });
-        
-        // Get the canvas and context
-        const canvas = canvasRef.current;
-        const context = canvas.getContext('2d', { alpha: false });
-        
-        // Clear the canvas
-        context.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Set canvas dimensions for high quality
-        const adjustedScale = 2.0;
-        canvas.width = viewport.width * adjustedScale;
-        canvas.height = viewport.height * adjustedScale;
-        
-        // Store original dimensions for zoom calculations
-        canvas.setAttribute('data-original-width', viewport.width);
-        canvas.setAttribute('data-original-height', viewport.height);
-        
-        // Scale down the canvas for display (apply current zoom)
-        canvas.style.width = (viewport.width * scale) + 'px';
-        canvas.style.height = (viewport.height * scale) + 'px';
-        
-        // Set scale for context
-        context.scale(adjustedScale, adjustedScale);
-        
-        // Render the page
-        await page.render({
-          canvasContext: context,
-          viewport: viewport
-        }).promise;
-        
-        // Clean up page resources
-        page.cleanup && page.cleanup();
-        
-        // Update auto-scroll refs
-        pdfViewerRef.current.currentPageNumber = pageNumber;
-        if (containerRef.current) {
-          pdfViewerRef.current.container = containerRef.current;
-        }
+        if (!isMounted) return;
+
+        // Use our safe render function to handle the rendering
+        await safeRenderPage(pageNumber, scale);
       } catch (error) {
         if (!isMounted) return;
         console.error('Error rendering page:', error);
@@ -161,74 +208,24 @@ const PDFViewer = ({ pdfUrl }) => {
     return () => {
       isMounted = false;
     };
-  }, [pageNumber, pdfLoaded, scale]);
+  }, [pageNumber, pdfLoaded]);
   
   // Update zoom when scale changes
   useEffect(() => {
     if (!canvasRef.current || !pdfLoaded || !pdfDocRef.current) return;
     
-    const canvas = canvasRef.current;
-    
-    // Get original dimensions (stored in data attributes or from style)
-    const originalWidth = parseFloat(canvas.getAttribute('data-original-width') || 
-                                    canvas.style.width || 
-                                    canvas.width);
-    const originalHeight = parseFloat(canvas.getAttribute('data-original-height') || 
-                                     canvas.style.height || 
-                                     canvas.height);
-    
-    // If we don't have original dimensions stored, save them
-    if (!canvas.getAttribute('data-original-width')) {
-      canvas.setAttribute('data-original-width', originalWidth);
-      canvas.setAttribute('data-original-height', originalHeight);
-    }
-    
-    // Apply zoom to canvas display size
-    canvas.style.width = (originalWidth * scale) + 'px';
-    canvas.style.height = (originalHeight * scale) + 'px';
-    
-    // Re-render the current page with updated scale to maintain quality
-    const renderCurrentPage = async () => {
+    // Only need to re-render the page with the new scale
+    const renderWithNewScale = async () => {
       try {
-        // Get the page
-        const page = await pdfDocRef.current.getPage(pageNumber);
-        
-        // Get the viewport with current scale
-        const viewport = page.getViewport({ scale: 1.0 });
-        
-        // Get the canvas and context
-        const context = canvas.getContext('2d', { alpha: false });
-        
-        // Clear the canvas
-        context.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Set canvas dimensions for high quality with current scale
-        const adjustedScale = 2.0;
-        canvas.width = viewport.width * adjustedScale;
-        canvas.height = viewport.height * adjustedScale;
-        
-        // Apply zoom to display size
-        canvas.style.width = (viewport.width * scale) + 'px';
-        canvas.style.height = (viewport.height * scale) + 'px';
-        
-        // Set scale for context
-        context.scale(adjustedScale, adjustedScale);
-        
-        // Render the page
-        await page.render({
-          canvasContext: context,
-          viewport: viewport
-        }).promise;
-        
-        // Clean up page resources
-        page.cleanup && page.cleanup();
+        // Use our safe render function to handle the rendering with new scale
+        await safeRenderPage(pageNumber, scale);
       } catch (error) {
         console.error('Error re-rendering page for zoom:', error);
       }
     };
     
-    renderCurrentPage();
-  }, [scale, pdfLoaded, pageNumber]);
+    renderWithNewScale();
+  }, [scale]);
   
   // Handle page navigation
   const changePage = (offset, resetScroll = true) => {
