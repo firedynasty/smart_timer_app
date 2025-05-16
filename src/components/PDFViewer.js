@@ -326,6 +326,14 @@ const PDFViewer = ({ pdfUrl }) => {
         document.dispatchEvent(resetTimerEvent);
         
         e.preventDefault(); // Prevent default browser behavior
+      } else if (e.key === '=' || e.key === '+') {
+        // Zoom in
+        zoomIn();
+        e.preventDefault(); // Prevent default browser behavior
+      } else if (e.key === '-') {
+        // Zoom out
+        zoomOut();
+        e.preventDefault(); // Prevent default browser behavior
       }
     };
     
@@ -398,9 +406,9 @@ const PDFViewer = ({ pdfUrl }) => {
         </div>
         
         <div className="zoom-controls">
-          <button onClick={zoomOut} disabled={isLoading}>-</button>
+          <button onClick={zoomOut} disabled={isLoading}>(-)</button>
           <span>{Math.round(scale * 100)}%</span>
-          <button onClick={zoomIn} disabled={isLoading}>+</button>
+          <button onClick={zoomIn} disabled={isLoading}>(=/+)</button>
           <button onClick={resetPDFView} disabled={isLoading}>Reload PDF (r)</button>
           <button onClick={() => setIsFAQOpen(true)} className="faq-button" disabled={isLoading}>FAQ</button>
         </div>
