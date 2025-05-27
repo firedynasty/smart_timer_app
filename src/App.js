@@ -1,11 +1,11 @@
 import React from 'react';
-import AccessiblePDFViewer from './AccessiblePDFViewer';
+import SmartCountdownTimer from './SmartCountdownTimer';
 import './App.css';
 
 function App() {
   return (
     <div className="App">
-      <AccessiblePDFViewer />
+      <SmartCountdownTimer />
     </div>
   );
 }

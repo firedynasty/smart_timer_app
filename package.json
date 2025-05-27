@@ -1,15 +1,13 @@
 {
-  "name": "accessible-pdf-viewer",
+  "name": "smart-timer",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
     "cra-template": "1.2.0",
-    "pdfjs-dist": "^4.8.69",
+    "lucide-react": "^0.511.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-pdf": "^7.7.1",
     "react-scripts": "5.0.1",
-    "recharts": "^2.15.0",
     "web-vitals": "^4.2.4"
   },
   "scripts": {
@@ -35,5 +33,10 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17"
   }
 }
