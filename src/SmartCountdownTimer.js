@@ -15,6 +15,8 @@ const SmartCountdownTimer = () => {
     }
   });
   const [currentSessionStart, setCurrentSessionStart] = useState(null);
+  const [isPaused, setIsPaused] = useState(false);
+  const [pausedTime, setPausedTime] = useState(0);
   const intervalRef = useRef(null);
   const tableRef = useRef(null);
 
@@ -47,19 +49,33 @@ const SmartCountdownTimer = () => {
     const now = new Date();
     setCurrentSessionStart(now);
     setIsRunning(true);
+    setIsPaused(false);
     setElapsedTime(0);
+    setPausedTime(0);
   }, []);
+
+  const pauseTimer = useCallback(() => {
+    setIsRunning(false);
+    setIsPaused(true);
+    setPausedTime(elapsedTime);
+  }, [elapsedTime]);
+
+  const resumeTimer = useCallback(() => {
+    setIsRunning(true);
+    setIsPaused(false);
+    setElapsedTime(pausedTime);
+  }, [pausedTime]);
 
   const stopTimer = useCallback(() => {
     if (currentSessionStart) {
       const now = new Date();
-      const duration = calculateDuration(currentSessionStart, now);
+      const totalDuration = isPaused ? pausedTime : elapsedTime;
       
       const newSession = {
         id: Date.now(),
         start: formatDateTime(currentSessionStart),
         stop: formatDateTime(now),
-        duration: formatTime(duration),
+        duration: formatTime(totalDuration),
         comments: ''
       };
 
@@ -67,7 +83,9 @@ const SmartCountdownTimer = () => {
       setCurrentSessionStart(null);
     }
     setIsRunning(false);
+    setIsPaused(false);
     setElapsedTime(0);
+    setPausedTime(0);
     
     // Scroll to sessions table
     setTimeout(() => {
@@ -76,7 +94,7 @@ const SmartCountdownTimer = () => {
         sessionsElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }, 100);
-  }, [currentSessionStart, calculateDuration, formatDateTime, formatTime, setSessions]);
+  }, [currentSessionStart, isPaused, pausedTime, elapsedTime, formatDateTime, formatTime, setSessions]);
 
   // Save sessions to localStorage whenever sessions state changes
   useEffect(() => {
@@ -107,7 +125,9 @@ const SmartCountdownTimer = () => {
       if (event.key === 'Escape') {
         event.preventDefault();
         if (isRunning) {
-          stopTimer();
+          pauseTimer();
+        } else if (isPaused) {
+          resumeTimer();
         } else {
           startTimer();
         }
@@ -121,7 +141,7 @@ const SmartCountdownTimer = () => {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isRunning, startTimer, stopTimer]); // Include functions in dependency array
+  }, [isRunning, isPaused, startTimer, pauseTimer, resumeTimer]); // Include functions in dependency array
 
   const updateSession = (id, field, value) => {
     setSessions(prev => prev.map(session => 
@@ -221,11 +241,11 @@ const SmartCountdownTimer = () => {
         <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
           <div className="text-center">
             <div className="text-6xl font-mono font-bold text-gray-800 mb-6">
-              {formatTime(elapsedTime)}
+              {formatTime(isPaused ? pausedTime : elapsedTime)}
             </div>
             
             <div className="flex justify-center gap-4">
-              {!isRunning ? (
+              {!isRunning && !isPaused ? (
                 <button
                   onClick={startTimer}
                   className="bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-xl font-semibold flex items-center gap-3 transition-colors shadow-lg"
@@ -233,10 +253,27 @@ const SmartCountdownTimer = () => {
                   <Play size={24} />
                   Start
                 </button>
+              ) : isPaused ? (
+                <>
+                  <button
+                    onClick={resumeTimer}
+                    className="bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-xl font-semibold flex items-center gap-3 transition-colors shadow-lg"
+                  >
+                    <Play size={24} />
+                    Resume
+                  </button>
+                  <button
+                    onClick={stopTimer}
+                    className="bg-red-500 hover:bg-red-600 text-white px-8 py-4 rounded-xl font-semibold flex items-center gap-3 transition-colors shadow-lg"
+                  >
+                    <Square size={24} />
+                    Stop
+                  </button>
+                </>
               ) : (
                 <>
                   <button
-                    onClick={() => setIsRunning(false)}
+                    onClick={pauseTimer}
                     className="bg-yellow-500 hover:bg-yellow-600 text-white px-8 py-4 rounded-xl font-semibold flex items-center gap-3 transition-colors shadow-lg"
                   >
                     <Pause size={24} />
@@ -258,9 +295,14 @@ const SmartCountdownTimer = () => {
                 Timer is running...
               </div>
             )}
+            {isPaused && (
+              <div className="mt-4 text-yellow-600 font-semibold">
+                Timer is paused - {formatTime(pausedTime)}
+              </div>
+            )}
             
             <div className="mt-4 text-gray-500 text-sm">
-              Press <kbd className="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs font-mono">Escape</kbd> to {isRunning ? 'stop' : 'start'} timer
+              Press <kbd className="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs font-mono">Escape</kbd> to {isRunning ? 'pause' : isPaused ? 'resume' : 'start'} timer
             </div>
           </div>
         </div>
@@ -307,35 +349,35 @@ const SmartCountdownTimer = () => {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table ref={tableRef} className="w-full border-collapse border border-gray-300">
+              <table ref={tableRef} className="sessions-table">
                 <thead>
-                  <tr className="bg-gray-50">
-                    <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-700">Start</th>
-                    <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-700">Stop</th>
-                    <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-700">Duration</th>
-                    <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-700">Comments</th>
-                    <th className="border border-gray-300 px-4 py-3 text-center font-semibold text-gray-700">Actions</th>
+                  <tr>
+                    <th>Start</th>
+                    <th>Stop</th>
+                    <th>Duration</th>
+                    <th>Comments</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {sessions.map((session) => (
-                    <tr key={session.id} className="hover:bg-gray-50">
-                      <td className="border border-gray-300 px-4 py-3 font-mono text-sm">{session.start}</td>
-                      <td className="border border-gray-300 px-4 py-3 font-mono text-sm">{session.stop}</td>
-                      <td className="border border-gray-300 px-4 py-3 font-mono text-lg font-semibold text-blue-600">{session.duration}</td>
-                      <td className="border border-gray-300 px-4 py-3">
+                    <tr key={session.id}>
+                      <td className="time-cell">{session.start}</td>
+                      <td className="time-cell">{session.stop}</td>
+                      <td className="duration-cell">{session.duration}</td>
+                      <td>
                         <input
                           type="text"
                           value={session.comments}
                           onChange={(e) => updateSession(session.id, 'comments', e.target.value)}
                           placeholder="Add comments..."
-                          className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="comment-input"
                         />
                       </td>
-                      <td className="border border-gray-300 px-4 py-3 text-center">
+                      <td className="action-cell">
                         <button
                           onClick={() => deleteSession(session.id)}
-                          className="text-red-500 hover:text-red-700 transition-colors"
+                          className="delete-btn"
                           title="Delete session"
                         >
                           <Trash2 size={18} />

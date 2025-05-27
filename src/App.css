@@ -1,38 +1,136 @@
-.App {
+/* Table Styling */
+.sessions-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  background-color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.sessions-table thead {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.sessions-table thead th {
+  padding: 16px 12px;
+  text-align: left;
+  font-weight: 600;
+  color: white;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  border: none;
+}
+
+.sessions-table thead th:last-child {
   text-align: center;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.sessions-table tbody tr {
+  border-bottom: 1px solid #e5e7eb;
+  transition: background-color 0.2s ease;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.sessions-table tbody tr:hover {
+  background-color: #f8fafc;
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+.sessions-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.sessions-table td {
+  padding: 12px;
+  border: none;
+  vertical-align: middle;
+}
+
+.time-cell {
+  font-family: 'Monaco', 'Consolas', monospace;
+  font-size: 12px;
+  color: #6b7280;
+  background-color: #f9fafb;
+  border-radius: 4px;
+  margin: 2px 0;
+  padding: 8px 12px !important;
+}
+
+.duration-cell {
+  font-family: 'Monaco', 'Consolas', monospace;
+  font-size: 16px;
+  font-weight: 700;
+  color: #2563eb;
+  text-align: center;
+}
+
+.comment-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background-color: #fafbfc;
+}
+
+.comment-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  background-color: white;
+}
+
+.comment-input::placeholder {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.action-cell {
+  text-align: center;
+}
+
+.delete-btn {
+  color: #dc2626;
+  padding: 8px;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
 }
 
-.App-link {
-  color: #61dafb;
+.delete-btn:hover {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  transform: scale(1.1);
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
+/* Responsive design */
+@media (max-width: 768px) {
+  .sessions-table {
+    font-size: 12px;
   }
-  to {
-    transform: rotate(360deg);
+  
+  .sessions-table td {
+    padding: 8px 6px;
+  }
+  
+  .time-cell {
+    font-size: 10px;
+    padding: 6px 8px !important;
+  }
+  
+  .duration-cell {
+    font-size: 14px;
+  }
+  
+  .comment-input {
+    padding: 6px 8px;
+    font-size: 12px;
   }
 }
