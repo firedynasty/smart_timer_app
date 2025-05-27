@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Play, Pause, Square, Download, Trash2 } from 'lucide-react';
 
 const SmartCountdownTimer = () => {
@@ -43,14 +43,14 @@ const SmartCountdownTimer = () => {
     return Math.floor((end - start) / 1000);
   };
 
-  const startTimer = () => {
+  const startTimer = useCallback(() => {
     const now = new Date();
     setCurrentSessionStart(now);
     setIsRunning(true);
     setElapsedTime(0);
-  };
+  }, []);
 
-  const stopTimer = () => {
+  const stopTimer = useCallback(() => {
     if (currentSessionStart) {
       const now = new Date();
       const duration = calculateDuration(currentSessionStart, now);
@@ -76,7 +76,7 @@ const SmartCountdownTimer = () => {
         sessionsElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }, 100);
-  };
+  }, [currentSessionStart, calculateDuration, formatDateTime, formatTime, setSessions]);
 
   // Save sessions to localStorage whenever sessions state changes
   useEffect(() => {
